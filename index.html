@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="referrer" content="no-referrer" />
+  <title>FrameXTV Mobile</title>
+  <style>
+    :root {
+      --bg: #090a0f;
+      --surface: #141722;
+      --card: #1c2030;
+      --accent: #6366f1;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; padding-bottom: 3rem; }
+    header {
+      position: sticky; top: 0; z-index: 50; background: rgba(9, 10, 15, 0.94);
+      backdrop-filter: blur(10px); padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; }
+    .brand { font-size: 1.2rem; font-weight: 800; }
+    .brand span { color: var(--accent); }
+    .shield { font-size: 0.65rem; background: rgba(16,185,129,0.18); color: #10b981; padding: 0.15rem 0.45rem; border-radius: 99px; }
+    .search {
+      width: 100%; background: var(--surface); border: 1px solid rgba(255,255,255,0.12);
+      color: var(--text); padding: 0.6rem 0.85rem; border-radius: 0.5rem; font-size: 0.95rem; margin-bottom: 0.6rem;
+    }
+    .tabs { display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 0.2rem; }
+    .tabs button {
+      background: var(--surface); color: var(--muted); border: none; padding: 0.45rem 0.85rem;
+      border-radius: 99px; font-size: 0.82rem; font-weight: 600; white-space: nowrap;
+    }
+    .tabs button.active { background: var(--accent); color: #fff; }
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+      gap: 0.85rem; padding: 1rem;
+    }
+    .card {
+      background: var(--card); border-radius: 0.6rem; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.07); cursor: pointer;
+    }
+    .poster { aspect-ratio: 2/3; width: 100%; background: #0d1017; position: relative; }
+    .poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .badge {
+      position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,0.8);
+      color: #fbbf24; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+    }
+    .card-title {
+      padding: 0.5rem; font-size: 0.82rem; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .modal {
+      position: fixed; inset: 0; z-index: 100; background: #000;
+      display: none; flex-direction: column;
+    }
+    .modal.open { display: flex; }
+    .modal-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.75rem 1rem; background: var(--surface); gap: 0.5rem; flex-wrap: wrap;
+    }
+    .controls-row { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; width: 100%; margin-top: 0.4rem; }
+    select, .btn {
+      background: var(--card); color: var(--text); border: 1px solid rgba(255,255,255,0.15);
+      padding: 0.45rem 0.65rem; border-radius: 0.4rem; font-size: 0.82rem;
+    }
+    .btn-close { background: #ef4444; color: #fff; border: none; font-weight: 700; }
+    .stage { flex: 1; width: 100%; background: #000; position: relative; }
+    .stage iframe { width: 100%; height: 100%; border: none; position: absolute; inset: 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="top-row">
+      <div class="brand">frame<span>X</span>TV</div>
+      <span class="shield">AD-FREE MOBILE</span>
+    </div>
+    <input type="search" id="search" class="search" placeholder="Search movies, shows, anime..." />
+    <div class="tabs" id="tabs">
+      <button data-tab="trending" class="active">Trending</button>
+      <button data-tab="movie">Movies</button>
+      <button data-tab="tv">TV Shows</button>
+      <button data-tab="anime">Anime</button>
+      <button data-tab="saved">Saved</button>
+    </div>
+  </header>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="modal" id="modal">
+    <div class="modal-bar">
+      <strong id="pTitle" style="font-size:0.9rem;">Playing</strong>
+      <div style="display:flex; gap:0.4rem;">
+        <button class="btn" id="saveBtn">+ Save</button>
+        <button class="btn btn-close" id="closeBtn">Close</button>
+      </div>
+      <div class="controls-row">
+        <select id="serverSel">
+          <option value="0">Server 1 (VidSrc)</option>
+          <option value="1">Server 2 (VidLink)</option>
+          <option value="2">Server 3 (Multi)</option>
+        </select>
+        <select id="seasonSel" style="display:none;"></select>
+        <select id="epSel" style="display:none;"></select>
+      </div>
+    </div>
+    <div class="stage" id="stage"></div>
+  </div>
+
+  <script>
+    window.open = () => null;
+    const API_KEY = "3fd2be6f0c70a2a598f084ddfb75487c";
+    const SERVERS = [
+      { m: "https://vidsrc.xyz/embed/movie/{id}", t: "https://vidsrc.xyz/embed/tv/{id}/{s}-{e}" },
+      { m: "https://vidlink.pro/movie/{id}", t: "https://vidlink.pro/tv/{id}/{s}/{e}" },
+      { m: "https://multiembed.mov/?video_id={id}&tmdb=1", t: "https://multiembed.mov/?video_id={id}&tmdb=1&s={s}&e={e}" }
+    ];
+
+    let tab = "trending", items = [], active = null, s = 1, e = 1, srv = 0, seasons = [];
+
+    const getSaved = () => JSON.parse(localStorage.getItem("fx_saved") || "[]");
+    const setSaved = arr => localStorage.setItem("fx_saved", JSON.stringify(arr));
+
+    async function api(path) {
+      const r = await fetch(`https://api.themoviedb.org/3${path}${path.includes("?") ? "&" : "?"}api_key=${API_KEY}`);
+      return r.json();
+    }
+
+    async function load(q = "") {
+      const grid = document.getElementById("grid");
+      grid.innerHTML = "<p style='padding:1rem;color:#9ca3af;'>Loading...</p>";
+      try {
+        if (tab === "saved") items = getSaved();
+        else if (q.trim()) {
+          const d = await api(`/search/multi?query=${encodeURIComponent(q.trim())}`);
+          items = (d.results || []).filter(x => x.media_type === "movie" || x.media_type === "tv");
+        } else if (tab === "trending") {
+          const d = await api("/trending/all/week");
+          items = (d.results || []).filter(x => x.media_type === "movie" || x.media_type === "tv");
+        } else if (tab === "movie") {
+          const d = await api("/discover/movie");
+          items = (d.results || []).map(x => ({ ...x, media_type: "movie" }));
+        } else if (tab === "tv") {
+          const d = await api("/discover/tv");
+          items = (d.results || []).map(x => ({ ...x, media_type: "tv" }));
+        } else if (tab === "anime") {
+          const d = await api("/discover/tv?with_genres=16&with_original_language=ja");
+          items = (d.results || []).map(x => ({ ...x, media_type: "tv" }));
+        }
+      } catch { items = []; }
+
+      grid.innerHTML = "";
+      items.forEach(item => {
+        if (!item.poster_path) return;
+        const el = document.createElement("div");
+        el.className = "card";
+        el.innerHTML = `
+          <div class="poster">
+            <img src="https://image.tmdb.org/t/p/w342${item.poster_path}" loading="lazy" />
+            <span class="badge">&#9733; ${(item.vote_average || 0).toFixed(1)}</span>
+          </div>
+          <div class="card-title">${item.title || item.name}</div>`;
+        el.onclick = () => play(item);
+        grid.appendChild(el);
+      });
+    }
+
+    async function play(item) {
+      active = { ...item, media_type: item.media_type || (item.first_air_date ? "tv" : "movie") };
+      s = 1; e = 1;
+      document.getElementById("pTitle").textContent = active.title || active.name;
+      const isTv = active.media_type === "tv";
+      const sSel = document.getElementById("seasonSel");
+      const eSel = document.getElementById("epSel");
+      sSel.style.display = isTv ? "inline-block" : "none";
+      eSel.style.display = isTv ? "inline-block" : "none";
+
+      if (isTv) {
+        sSel.innerHTML = "";
+        try {
+          const d = await api(`/tv/${active.id}`);
+          seasons = (d.seasons || []).filter(x => x.season_number > 0);
+        } catch { seasons = [{ season_number: 1, episode_count: 24 }]; }
+        seasons.forEach(x => {
+          const o = document.createElement("option");
+          o.value = x.season_number; o.textContent = `S${x.season_number}`;
+          sSel.appendChild(o);
+        });
+        fillEps();
+      }
+      document.getElementById("modal").classList.add("open");
+      mount();
+    }
+
+    function fillEps() {
+      const eSel = document.getElementById("epSel");
+      eSel.innerHTML = "";
+      const found = seasons.find(x => x.season_number === Number(s));
+      const count = found ? found.episode_count : 24;
+      for (let i = 1; i <= count; i++) {
+        const o = document.createElement("option");
+        o.value = i; o.textContent = `E${i}`;
+        eSel.appendChild(o);
+      }
+    }
+
+    function mount() {
+      const stage = document.getElementById("stage");
+      stage.innerHTML = "";
+      const tpl = active.media_type === "tv" ? SERVERS[srv].t : SERVERS[srv].m;
+      const f = document.createElement("iframe");
+      f.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-presentation");
+      f.setAttribute("allow", "autoplay; fullscreen; picture-in-picture");
+      f.src = tpl.replace("{id}", active.id).replace("{s}", s).replace("{e}", e);
+      stage.appendChild(f);
+    }
+
+    document.getElementById("tabs").onclick = ev => {
+      const b = ev.target.closest("button");
+      if (!b) return;
+      document.querySelectorAll("#tabs button").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      tab = b.dataset.tab;
+      load();
+    };
+    document.getElementById("search").oninput = ev => load(ev.target.value);
+    document.getElementById("serverSel").onchange = ev => { srv = Number(ev.target.value); mount(); };
+    document.getElementById("seasonSel").onchange = ev => { s = Number(ev.target.value); e = 1; fillEps(); mount(); };
+    document.getElementById("epSel").onchange = ev => { e = Number(ev.target.value); mount(); };
+    document.getElementById("closeBtn").onclick = () => {
+      document.getElementById("modal").classList.remove("open");
+      document.getElementById("stage").innerHTML = "";
+    };
+    document.getElementById("saveBtn").onclick = () => {
+      const list = getSaved();
+      const exists = list.some(x => x.id === active.id);
+      setSaved(exists ? list.filter(x => x.id !== active.id) : [active, ...list]);
+      alert(exists ? "Removed from Saved" : "Added to Saved");
+    };
+
+    load();
+  </script>
+</body>
+</html>
