@@ -5,9 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <!-- Changed from no-referrer to origin so video servers allow the play button to load -->
   <meta name="referrer" content="origin" />
-  <title>FrameXTV Mobile</title>
+  <title>FrameXTV — Ad-Free Arabic Subtitles</title>
   <style>
     :root {
       --bg: #090a0f;
@@ -23,10 +22,12 @@
       position: sticky; top: 0; z-index: 50; background: rgba(9, 10, 15, 0.95);
       backdrop-filter: blur(10px); padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.08);
     }
-    .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; }
+    .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; gap: 0.5rem; }
     .brand { font-size: 1.2rem; font-weight: 800; }
     .brand span { color: var(--accent); }
-    .shield { font-size: 0.68rem; background: rgba(16,185,129,0.18); color: #10b981; padding: 0.2rem 0.5rem; border-radius: 99px; font-weight: 600; }
+    .badges { display: flex; gap: 0.35rem; align-items: center; }
+    .shield { font-size: 0.65rem; background: rgba(16,185,129,0.18); color: #10b981; padding: 0.2rem 0.45rem; border-radius: 99px; font-weight: 700; }
+    .sub-pill { font-size: 0.65rem; background: rgba(99,102,241,0.2); color: #818cf8; padding: 0.2rem 0.45rem; border-radius: 99px; font-weight: 700; }
     .search {
       width: 100%; background: var(--surface); border: 1px solid rgba(255,255,255,0.12);
       color: var(--text); padding: 0.6rem 0.85rem; border-radius: 0.5rem; font-size: 0.95rem; margin-bottom: 0.6rem;
@@ -62,20 +63,20 @@
     }
     .modal.open { display: flex; }
     .modal-bar {
-      background: var(--surface); padding: 0.65rem 0.85rem;
+      background: var(--surface); padding: 0.6rem 0.85rem;
       border-bottom: 1px solid rgba(255,255,255,0.1);
     }
-    .bar-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
-    .controls-row { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+    .bar-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem; }
+    .controls-row { display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; }
     select, .btn {
       background: var(--card); color: var(--text); border: 1px solid rgba(255,255,255,0.18);
-      padding: 0.45rem 0.6rem; border-radius: 0.4rem; font-size: 0.8rem;
+      padding: 0.4rem 0.55rem; border-radius: 0.4rem; font-size: 0.78rem;
     }
     .btn-close { background: #ef4444; color: #fff; border: none; font-weight: 700; }
-    .btn-shield-on { border-color: #10b981; color: #10b981; }
+    .btn-locked { background: rgba(16,185,129,0.16); border-color: #10b981; color: #10b981; font-weight: 700; }
     .stage {
       width: 100%;
-      height: calc(100dvh - 110px);
+      height: calc(100dvh - 115px);
       background: #000;
       position: relative;
     }
@@ -86,8 +87,8 @@
       display: block;
     }
     .help-tip {
-      background: #11131c; color: var(--muted); font-size: 0.74rem;
-      padding: 0.35rem 0.85rem; text-align: center; border-top: 1px solid rgba(255,255,255,0.06);
+      background: #11131c; color: var(--muted); font-size: 0.72rem;
+      padding: 0.35rem 0.75rem; text-align: center; border-top: 1px solid rgba(255,255,255,0.06);
     }
   </style>
 </head>
@@ -95,7 +96,10 @@
   <header>
     <div class="top-row">
       <div class="brand">frame<span>X</span>TV</div>
-      <span class="shield">6 SERVERS READY</span>
+      <div class="badges">
+        <span class="sub-pill">SUBS: العربية (AR)</span>
+        <span class="shield">NO POPUPS</span>
+      </div>
     </div>
     <input type="search" id="search" class="search" placeholder="Search movies, shows, anime..." />
     <div class="tabs" id="tabs">
@@ -112,7 +116,7 @@
   <div class="modal" id="modal">
     <div class="modal-bar">
       <div class="bar-top">
-        <strong id="pTitle" style="font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60%;">Playing</strong>
+        <strong id="pTitle" style="font-size:0.88rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:58%;">Playing</strong>
         <div style="display:flex; gap:0.4rem;">
           <button class="btn" id="saveBtn">+ Save</button>
           <button class="btn btn-close" id="closeBtn">Close</button>
@@ -120,38 +124,65 @@
       </div>
       <div class="controls-row">
         <select id="serverSel">
-          <option value="0">Server 1 (VidLink)</option>
-          <option value="1">Server 2 (AutoEmbed)</option>
-          <option value="2">Server 3 (VidSrc.icu)</option>
-          <option value="3">Server 4 (MultiEmbed)</option>
-          <option value="4">Server 5 (VidSrc.cc)</option>
-          <option value="5">Server 6 (2Embed)</option>
+          <option value="0">Server 1 (VidSrc.pm — AR Subs)</option>
+          <option value="1">Server 2 (VidSrc.in — AR Subs)</option>
+          <option value="2">Server 3 (VidSrc.icu — AR Subs)</option>
+          <option value="3">Server 4 (AutoEmbed — AR Subs)</option>
+          <option value="4">Server 5 (MultiEmbed — AR Subs)</option>
+          <option value="5">Server 6 (VidLink — AR Subs)</option>
         </select>
         <select id="seasonSel" style="display:none;"></select>
         <select id="epSel" style="display:none;"></select>
-        <button class="btn" id="sandboxBtn">Shield: Soft</button>
+        <select id="langSel" title="Default Subtitle Language">
+          <option value="ar" selected>Subs: العربية (AR)</option>
+          <option value="en">Subs: English (EN)</option>
+        </select>
+        <button class="btn btn-locked" id="sandboxBtn">🔒 Ad-Lock: ON</button>
       </div>
     </div>
     <div class="stage" id="stage"></div>
-    <div class="help-tip">If a server shows a blank screen, switch to <b>Server 2</b> or <b>Server 3</b> above, or tap <b>Shield</b> to toggle sandbox mode.</div>
+    <div class="help-tip">
+      <b>Ad-Lock ON:</b> Popups & redirects are blocked! Tap Play (1-2 taps may silently kill an invisible ad before playback starts). Arabic captions load by default.
+    </div>
   </div>
 
   <script>
-    window.open = () => null;
+    // Block all top-level popup attempts
+    window.open = function () { return null; };
+
     const API_KEY = "3fd2be6f0c70a2a598f084ddfb75487c";
 
+    // All servers configured with default subtitle language parameter ({lang} = 'ar' by default)
     const SERVERS = [
-      { m: "https://vidlink.pro/movie/{id}", t: "https://vidlink.pro/tv/{id}/{s}/{e}" },
-      { m: "https://player.autoembed.cc/embed/movie/{id}", t: "https://player.autoembed.cc/embed/tv/{id}/{s}/{e}" },
-      { m: "https://vidsrc.icu/embed/movie/{id}", t: "https://vidsrc.icu/embed/tv/{id}/{s}/{e}" },
-      { m: "https://multiembed.mov/?video_id={id}&tmdb=1", t: "https://multiembed.mov/?video_id={id}&tmdb=1&s={s}&e={e}" },
-      { m: "https://vidsrc.cc/v2/embed/movie/{id}", t: "https://vidsrc.cc/v2/embed/tv/{id}/{s}/{e}" },
-      { m: "https://www.2embed.cc/embed/{id}", t: "https://www.2embed.cc/embedtv/{id}&s={s}&e={e}" }
+      {
+        m: "https://vidsrc.pm/embed/movie/{id}?ds_lang={lang}&sub.lang={lang}&autoplay=1",
+        t: "https://vidsrc.pm/embed/tv/{id}/{s}-{e}?ds_lang={lang}&sub.lang={lang}&autoplay=1"
+      },
+      {
+        m: "https://vidsrc.in/embed/movie/{id}?ds_lang={lang}&sub.lang={lang}&autoplay=1",
+        t: "https://vidsrc.in/embed/tv/{id}/{s}-{e}?ds_lang={lang}&sub.lang={lang}&autoplay=1"
+      },
+      {
+        m: "https://vidsrc.icu/embed/movie/{id}?ds_lang={lang}&sub.lang={lang}&autoplay=1",
+        t: "https://vidsrc.icu/embed/tv/{id}/{s}/{e}?ds_lang={lang}&sub.lang={lang}&autoplay=1"
+      },
+      {
+        m: "https://player.autoembed.cc/embed/movie/{id}?ds_lang={lang}&sub={lang}&lang={lang}",
+        t: "https://player.autoembed.cc/embed/tv/{id}/{s}/{e}?ds_lang={lang}&sub={lang}&lang={lang}"
+      },
+      {
+        m: "https://multiembed.mov/?video_id={id}&tmdb=1&ds_lang={lang}&sub={lang}",
+        t: "https://multiembed.mov/?video_id={id}&tmdb=1&s={s}&e={e}&ds_lang={lang}&sub={lang}"
+      },
+      {
+        m: "https://vidlink.pro/movie/{id}?ds_lang={lang}&sub_lang={lang}&autoplay=true",
+        t: "https://vidlink.pro/tv/{id}/{s}/{e}?ds_lang={lang}&sub_lang={lang}&autoplay=true"
+      }
     ];
 
-    let tab = "trending", items = [], active = null, s = 1, e = 1, srv = 0, seasons = [];
-    // strictSandbox = false by default so servers don't trigger anti-sandbox black screens
-    let strictSandbox = false;
+    let tab = "trending", items = [], active = null, s = 1, e = 1, srv = 0, lang = "ar", seasons = [];
+    // HARD-LOCKED ON BY DEFAULT: blocks 100% of popup tabs and page redirects!
+    let strictSandbox = true;
 
     const getSaved = () => JSON.parse(localStorage.getItem("fx_saved") || "[]");
     const setSaved = arr => localStorage.setItem("fx_saved", JSON.stringify(arr));
@@ -245,13 +276,21 @@
       stage.innerHTML = "";
       const tpl = active.media_type === "tv" ? SERVERS[srv].t : SERVERS[srv].m;
       const f = document.createElement("iframe");
+
       if (strictSandbox) {
-        f.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-presentation");
+        // Omitting allow-popups and allow-top-navigation completely forbids popup tabs and ad redirects
+        f.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-presentation allow-orientation-lock");
       }
+
       f.setAttribute("allow", "autoplay; fullscreen; picture-in-picture; encrypted-media");
       f.setAttribute("allowfullscreen", "true");
       f.setAttribute("referrerpolicy", "origin");
-      f.src = tpl.replace("{id}", active.id).replace("{s}", s).replace("{e}", e);
+      f.src = tpl
+        .replace("{id}", active.id)
+        .replace("{s}", s)
+        .replace("{e}", e)
+        .replace(/\{lang\}/g, lang);
+
       stage.appendChild(f);
     }
 
@@ -267,10 +306,11 @@
     document.getElementById("serverSel").onchange = ev => { srv = Number(ev.target.value); mount(); };
     document.getElementById("seasonSel").onchange = ev => { s = Number(ev.target.value); e = 1; fillEps(); mount(); };
     document.getElementById("epSel").onchange = ev => { e = Number(ev.target.value); mount(); };
+    document.getElementById("langSel").onchange = ev => { lang = ev.target.value; mount(); };
     document.getElementById("sandboxBtn").onclick = ev => {
       strictSandbox = !strictSandbox;
-      ev.target.textContent = strictSandbox ? "Shield: Strict" : "Shield: Soft";
-      ev.target.classList.toggle("btn-shield-on", strictSandbox);
+      ev.target.textContent = strictSandbox ? "🔒 Ad-Lock: ON" : "🔓 Ad-Lock: OFF";
+      ev.target.classList.toggle("btn-locked", strictSandbox);
       mount();
     };
     document.getElementById("closeBtn").onclick = () => {
